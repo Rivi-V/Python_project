@@ -17,7 +17,8 @@ Orders = sa.Table(  # Ассоциативная таблица многие к�
     sa.Column('user_id', sa.Integer, sa.ForeignKey('user.id'), primary_key=True),
     sa.Column('product_id', sa.Integer, sa.ForeignKey('product.id'), primary_key=True),
     sa.Column('start_date', sa.DateTime, nullable=False),
-    sa.Column('end_date', sa.DateTime, nullable=False)
+    sa.Column('end_date', sa.DateTime, nullable=False),
+    sa.Column('location', sa.String, nullable=False) 
 )
 
 @login.user_loader
@@ -29,9 +30,15 @@ class User(UserMixin, db.Model):
     username: so.Mapped[str] = so.mapped_column(sa.String(64), index=True, unique=True)
     email: so.Mapped[str] = so.mapped_column(sa.String(120), index=True, unique=True)
     password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
-    
     about_me: so.Mapped[Optional[str]] = so.mapped_column(sa.String(140))
     last_seen: so.Mapped[Optional[datetime]] = so.mapped_column(default=lambda: datetime.now(timezone.utc))
+
+    products = so.relationship(
+        'Product',
+        secondary=Orders,  # Указываем ассоциативную таблицу
+        back_populates='users',  # Связываем с полем `users` в модели Product
+        lazy='dynamic'  # Опция загрузки данных
+    )
 
     def __repr__(self):
         return f'<User {self.username}>'
@@ -46,4 +53,29 @@ class User(UserMixin, db.Model):
 class Product(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     name: so.Mapped[str] = so.mapped_column(sa.String(200), index=True, unique=True)
+    type: so.Mapped[str] = so.mapped_column(sa.String(200), index=True)
     description: so.Mapped[Optional[str]] = so.mapped_column(sa.String(400))
+    status: so.Mapped[Optional[str]] = so.mapped_column(sa.String(400), default="Free")
+
+    users = so.relationship(
+        'User',
+        secondary=Orders,  # Указываем ассоциативную таблицу
+        back_populates='products',  # Связываем с полем `products` в модели User
+        lazy='dynamic'  # Опция загрузки данных
+    )
+
+
+# добавляем заказы явно, а не через отношения (users или products) -> ошибка
+# как надо например:
+
+# from datetime import datetime
+
+# order2 = Orders.insert().values(
+#     user_id=user1.id,
+#     product_id=product2.id,
+#     start_date=datetime.utcnow(),
+#     end_date=datetime.utcnow(),
+#     location="Warehouse B"
+# )
+# db.session.execute(order1)
+# db.session.commit()
