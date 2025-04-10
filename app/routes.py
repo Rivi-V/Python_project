@@ -3,8 +3,29 @@ from app import app, db
 from app.forms import LoginForm, RegistrationForm, EditProfileForm
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
-from app.models import User
-from datetime import datetime, timezone
+from app.models import User, Product, Orders
+from datetime import datetime, timezone, date, timedelta 
+
+from calendar import monthcalendar
+from datetime import datetime
+
+def generate_calendar(year, month, booked_ranges):
+    cal = monthcalendar(year, month)
+    today = datetime.now().date()
+    
+    # Преобразуем календарь в список дат
+    calendar_dates = []
+    for week in cal:
+        week_dates = []
+        for day in week:
+            if day == 0:
+                week_dates.append(0)
+            else:
+                date_str = f"{year}-{month:02d}-{day:02d}"
+                week_dates.append(date_str)
+        calendar_dates.append(week_dates)
+    
+    return calendar_dates
 
 @app.route('/')
 @app.route('/index')
@@ -51,11 +72,98 @@ def register():
 @login_required
 def user(username):
     user = db.first_or_404(sa.select(User).where(User.username == username))
-    posts = [
-        {'author': user, 'body': 'Test post #1'},
-        {'author': user, 'body': 'Test post #2'}
-    ]
-    return render_template('user.html', user=user, posts=posts)
+    return render_template('user.html', user=user)
+
+
+@app.route('/product/<int:id>')
+@login_required
+def product(id):
+    product = db.first_or_404(sa.select(Product).where(Product.id == id))
+    
+    # Получаем занятые даты
+    booked_dates = db.session.execute(
+        sa.select(Orders.c.start_date, Orders.c.end_date)
+        .where(Orders.c.product_id == id)
+        .where(Orders.c.status == 'active')
+    ).fetchall()
+    
+    # Создаем список всех занятых дней
+    booked_days = []
+    for start, end in booked_dates:
+        current = start
+        while current <= end:
+            booked_days.append(current.strftime('%Y-%m-%d'))
+            current += timedelta(days=1)
+    
+    # Генерируем календарь на текущий месяц
+    today = date.today()
+    cal = monthcalendar(today.year, today.month)
+    
+    # Форматируем календарь для шаблона
+    calendar = []
+    for week in cal:
+        week_days = []
+        for day in week:
+            if day == 0:
+                week_days.append(0)
+            else:
+                date_str = f"{today.year}-{today.month:02d}-{day:02d}"
+                week_days.append(date_str)
+        calendar.append(week_days)
+    
+    return render_template('product.html', 
+                         product=product,
+                         calendar=calendar,
+                         booked_days=booked_days,
+                         today=today.strftime('%Y-%m-%d'))
+
+@app.route('/product/<int:product_id>/book', methods=['POST'])
+@login_required
+def book_product(product_id):
+    try:
+        # Конвертируем строки в даты
+        start_date = datetime.strptime(request.form['start_date'], '%Y-%m-%d').date()
+        end_date = datetime.strptime(request.form['end_date'], '%Y-%m-%d').date()
+        location = request.form['location']
+        
+        # Проверяем, что конечная дата не раньше начальной
+        if end_date < start_date:
+            flash('Конечная дата не может быть раньше начальной', 'error')
+            return redirect(url_for('product', id=product_id))
+            
+        # Проверяем доступность дат
+        conflict = db.session.execute(
+            sa.select(Orders)
+            .where(Orders.c.product_id == product_id)
+            .where(Orders.c.status == 'active')
+            .where(
+                ((Orders.c.start_date <= end_date) & (Orders.c.end_date >= start_date))
+            )
+        ).first()
+        
+        if conflict:
+            flash('Выбранные даты уже заняты', 'error')
+            return redirect(url_for('product', id=product_id))
+        
+        # Создаем бронь
+        db.session.execute(
+            Orders.insert().values(
+                user_id=current_user.id,
+                product_id=product_id,
+                start_date=start_date,  # Теперь это date объект
+                end_date=end_date,      # Теперь это date объект
+                location=location,
+                status='active'
+            )
+        )
+        db.session.commit()
+        
+        flash('Товар успешно забронирован!', 'success')
+        return redirect(url_for('product', id=product_id))
+        
+    except ValueError:
+        flash('Неверный формат даты', 'error')
+        return redirect(url_for('product', id=product_id))
 
 @app.before_request
 def before_request():

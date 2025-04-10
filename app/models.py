@@ -11,14 +11,15 @@ import sqlalchemy.orm as so
 # Хэширование паролей
 from werkzeug.security import generate_password_hash, check_password_hash
 
-Orders = sa.Table(  # Ассоциативная таблица многие ко многим
-    'orders',  # Имя таблицы
-    db.metadata,  # Метаданные, где SQL хранит всю информацию о таблицах
+Orders = sa.Table(
+    'orders',
+    db.metadata,
     sa.Column('user_id', sa.Integer, sa.ForeignKey('user.id'), primary_key=True),
     sa.Column('product_id', sa.Integer, sa.ForeignKey('product.id'), primary_key=True),
-    sa.Column('start_date', sa.DateTime, nullable=False),
-    sa.Column('end_date', sa.DateTime, nullable=False),
-    sa.Column('location', sa.String, nullable=False) 
+    sa.Column('start_date', sa.Date, nullable=False),  # Используем Date вместо DateTime
+    sa.Column('end_date', sa.Date, nullable=False),    # Используем Date вместо DateTime
+    sa.Column('location', sa.String(200), nullable=False),
+    sa.Column('status', sa.String(20), server_default='active')
 )
 
 @login.user_loader
@@ -56,6 +57,7 @@ class Product(db.Model):
     type: so.Mapped[str] = so.mapped_column(sa.String(200), index=True)
     description: so.Mapped[Optional[str]] = so.mapped_column(sa.String(400))
     status: so.Mapped[Optional[str]] = so.mapped_column(sa.String(400), default="Free")
+    image_url: so.Mapped[Optional[str]] = so.mapped_column(sa.String(500), default="")  # Новое поле для URL изображения
 
     users = so.relationship(
         'User',
