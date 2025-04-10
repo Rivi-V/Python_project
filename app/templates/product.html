@@ -48,7 +48,7 @@ function isDateBooked(date) {
 let selectedDates = [];
 
 function handleDateClick(date) {
-    if (date === '0' || isDateBooked(date)) return;
+    if (date === '0' || isDateBooked(date)) return; // То, что забронировано, не показывается 
     if (date === '0') return; // Пустые ячейки
     
     // Проверяем, доступна ли дата
