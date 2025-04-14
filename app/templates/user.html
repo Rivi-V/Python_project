@@ -1,17 +1,222 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <table>
-        <tr valign="top">
-            <td>
-                <h1>User: {{ user.username }}</h1>
-                {% if user.about_me %}<p>{{ user.about_me }}</p>{% endif %}
-                {% if user.last_seen %}<p>Last seen on: {{ user.last_seen }}</p>{% endif %}
-                {% if user == current_user %}
-                <p><a href="{{ url_for('edit_profile') }}">Edit your profile</a></p>
+<div class="profile-container">
+    <div class="profile-header">
+        <div class="profile-info">
+            <h1 class="profile-username">{{ user.username }}</h1>
+            
+            <div class="profile-meta">
+                {% if user.about_me %}
+                <div class="profile-bio">
+                    <p>{{ user.about_me }}</p>
+                </div>
                 {% endif %}
-            </td>
-        </tr>
-    </table>
-    <hr>
+                
+                <div class="profile-stats">
+                    {% if user.last_seen %}
+                    <div class="stat-item">
+                        <span class="stat-icon">🕒</span>
+                        <span>Last seen: {{ user.last_seen.strftime('%Y-%m-%d %H:%M') }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="stat-item">
+                        <span class="stat-icon">⭐</span>
+                        <span>Priority: {{ user.priority_level }}</span>
+                    </div>
+                </div>
+                
+                {% if user == current_user %}
+                <div class="profile-actions">
+                    <a href="{{ url_for('edit_profile') }}" class="edit-profile-btn">
+                        Edit Profile
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="content-divider"></div>
+    
+    <div class="products-section">
+        <h2 class="section-title">{{ user.username }}'s Products</h2>
+        
+        {% if products %}
+        <div class="products-grid">
+            {% for product in products %}
+                {% include 'prod_plate.html' %}
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>No products found.</p>
+        </div>
+        {% endif %}
+        
+        {% if prev_url or next_url %}
+        <div class="pagination">
+            {% if prev_url %}
+                <a href="{{ prev_url }}" class="pagination-link">
+                    <span>&larr;</span> Newer
+                </a>
+            {% endif %}
+            
+            {% if next_url %}
+                <a href="{{ next_url }}" class="pagination-link">
+                    Older <span>&rarr;</span>
+                </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .profile-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .profile-header {
+        display: flex;
+        gap: 30px;
+        align-items: flex-start;
+    }
+    
+    .profile-avatar {
+        flex: 0 0 150px;
+    }
+    
+    .avatar-img {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #fff;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .profile-info {
+        flex: 1;
+    }
+    
+    .profile-username {
+        font-size: 2rem;
+        margin: 0 0 10px 0;
+        color: #2c3e50;
+    }
+    
+    .profile-bio {
+        margin-bottom: 15px;
+        color: #555;
+        line-height: 1.6;
+        max-width: 600px;
+    }
+    
+    .profile-stats {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.95rem;
+        color: #7f8c8d;
+    }
+    
+    .stat-icon {
+        font-size: 1.1rem;
+    }
+    
+    .profile-actions {
+        margin-top: 20px;
+    }
+    
+    .edit-profile-btn {
+        display: inline-block;
+        padding: 8px 16px;
+        background-color: #3498db;
+        color: white;
+        border-radius: 4px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: background-color 0.3s;
+    }
+    
+    .edit-profile-btn:hover {
+        background-color: #2980b9;
+    }
+    
+    .content-divider {
+        height: 1px;
+        background-color: #eee;
+        margin: 40px 0;
+    }
+    
+    .section-title {
+        font-size: 1.5rem;
+        color: #2c3e50;
+        margin-bottom: 25px;
+    }
+    
+    .products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+        margin-bottom: 40px;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 40px 0;
+        color: #7f8c8d;
+    }
+    
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-top: 30px;
+    }
+    
+    .pagination-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 8px 16px;
+        color: #3498db;
+        text-decoration: none;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+    }
+    
+    .pagination-link:hover {
+        background-color: #f8f9fa;
+    }
+    
+    @media (max-width: 768px) {
+        .profile-header {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .profile-stats {
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .profile-bio {
+            margin-left: auto;
+            margin-right: auto;
+        }
+    }
+</style>
 {% endblock %}

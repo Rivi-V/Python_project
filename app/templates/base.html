@@ -1,35 +1,128 @@
-<html>
-
+<!DOCTYPE html>
+<html lang="ru"> <!-- Основные стили -->
 <head>
+    <meta charset="UTF-8">  <!--  Устанавливаем кодировку символов -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Ширина видимой области - ширина экрана, первоначальный масштаб страницы - 100% -->
     {% if title %}
     <title>{{ title }} - Rent</title>
     {% else %}
     <title>Rent</title>
     {% endif %}
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Шрифты */
+            line-height: 1.6;  /* Межстрочный интервал */
+            margin: 0; /* Внешние отступы */
+            padding: 0; /* Внутренние отступы */
+            background-color: #f5f5f5;
+            color: #333; /* Цвет текста элемента */
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        nav {
+            background-color: #2c3e50;
+            padding: 15px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        nav a {
+            color: #ecf0f1;
+            text-decoration: none; /* Отмена всех эффектов декорирования для текста */
+            margin-right: 15px; /* Внешние отступы справа элемента */
+            font-weight: 500; /* Толщина шрифта */
+            transition: color 0.3s;  /* Плавное изменения цыета элемента в течении 3 секунд */
+        }
+
+        nav a:hover { /* При наведении курсора */
+            color: #3498db;
+        }
+
+        .flash-messages {
+            margin: 15px 0;
+        }
+
+        .flash-messages ul { /* Стилизация самого списка */
+            list-style: none; /* Отменяет маркеры для списка */
+            padding: 0;
+        }
+
+        .flash-messages li { /* Стилизация отдельных пунктов списка */
+            padding: 10px 15px;
+            margin-bottom: 5px; /*Внешний отступ снизу*/
+            border-radius: 4px; /*Задание радиуса закругление углов элемента*/
+        }
+
+        .flash-messages .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .flash-messages .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        main {
+            padding: 20px 0;
+            min-height: calc(100vh - 150px); /*Минимальная высота эелемента */
+        }
+
+        hr {
+            border: 0;  /* Устанавливает ширину границы в 0 */
+            height: 1px;
+            background-color: #ddd;
+            margin: 20px 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px 0;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            margin-top: 30px;
+        }
+    </style>
 </head>
-
 <body>
-    <div>
-        Rent:
-        <a href="{{ url_for('index') }}">Home</a>
-        {% if current_user.is_anonymous %}
-        <a href="{{ url_for('login') }}">Login</a>
-        {% else %}
-        <a href="{{ url_for('user', username=current_user.username) }}">Profile</a>
-        <a href="{{ url_for('logout') }}">Logout</a>
-        {% endif %}
-    </div>
-    <hr>
-    {% with messages = get_flashed_messages() %}
-    {% if messages %}
-    <ul>
-        {% for message in messages %}
-        <li>{{ message }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
-    {% endwith %}
-    {% block content %}{% endblock %}
-</body>
+    <nav>
+        <div class="container">
+            <span style="color: #ecf0f1; font-weight: bold; margin-right: 20px;">Rent:</span> <!-- Группировка текста. Жирное начертани. Отступ справа. -->
+            <a href="{{ url_for('index') }}">Главная</a>
+            {% if current_user.is_anonymous %}
+            <a href="{{ url_for('login') }}">Войти</a>
+            {% else %}
+            <a href="{{ url_for('user', username=current_user.username) }}">Профиль</a>
+            <a href="{{ url_for('explore') }}">Оборудование</a>
+            <a href="{{ url_for('logout') }}">Выйти</a>
+            {% endif %}
+        </div>
+    </nav>
 
+    <main class="container">
+        <div class="flash-messages">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <ul>
+                    {% for category, message in messages %}
+                    <li class="{{ category }}">{{ message }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 Rent System. Все права защищены.</p>
+        </div>
+    </footer>
+</body>
 </html>

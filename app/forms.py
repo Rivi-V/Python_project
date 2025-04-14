@@ -46,3 +46,7 @@ class EditProfileForm(FlaskForm):
                 User.username == self.username.data))
             if user is not None:
                 raise ValidationError('Please use a different username.')
+
+class SearchForm(FlaskForm):
+    query = TextAreaField('Explore', validators=[Length(min=1, max=10000)])
+    submit = SubmitField('Search') 

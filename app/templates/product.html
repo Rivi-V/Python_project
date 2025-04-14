@@ -1,123 +1,234 @@
 {% extends "base.html" %}
 
 {% block content %}
+<div class="product-container">
+    <div class="product-header">
         <div class="product-image">
-                <img src="{{ product.image_url }}" alt="{{ product.name }}" style="max-width: 300px; max-height: 300px;">
+            <img src="{{ product.image_url or url_for('static', filename='default_product.jpg') }}" 
+                 alt="{{ product.name }}" 
+                 class="product-img">
         </div>
-        <h1>Product: {{ product.name }}</h1>
-        <p>Type: {{ product.type }}</p>
-        <p>Description: {{ product.description }}</p>
-        <p>Status: {{ product.status }}</p>
+        <div class="product-details">
+            <h1 class="product-title">{{ product.name }}</h1>
+            <div class="product-meta">
+                <span class="product-type">{{ product.type }}</span>
+                <span class="product-status {{ product.status|lower }}">{{ product.status }}</span>
+            </div>
+            <div class="product-description">
+                <p>{{ product.description or "No description available" }}</p>
+            </div>
+        </div>
+    </div>
 
-<!-- Календарь -->
-<table border="1">
-    <tr>
-        <th>Пн</th><th>Вт</th><th>Ср</th><th>Чт</th><th>Пт</th><th>Сб</th><th>Вс</th>
-    </tr>
-    {% for week in calendar %}
-    <tr>
-        {% for day in week %}
-        <td onclick="handleDateClick('{{ day }}')" 
-            id="day-{{ day }}"
-            {% if day == 0 %}style="background: #eee"{% endif %}
-            {% if day != 0 and day < today %}style="background: #ccc"{% endif %}
-            {% if day != 0 and day in booked_days %}style="background: #ffdddd"{% endif %}>
-            {% if day != 0 %}{{ day.split('-')[2] }}{% endif %}
-        </td>
-        {% endfor %}
-    </tr>
-    {% endfor %}
-</table>
+    <div class="rental-queue">
+        <h3 class="section-title">Очередь заказов</h3>
+        <div class="orders-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Начало аренды</th>
+                        <th>Конец аренды</th>
+                        <th>Локация</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr class="{% if order.status != 'active' %}inactive{% endif %}">
+                        <td>{{ order.start_date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ order.end_date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ order.location }}</td>
+                        <td>{{ order.status }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-<!-- Форма бронирования -->
-<form method="POST" action="{{ url_for('book_product', product_id=product.id) }}">
-    <input type="hidden" name="start_date" id="start_date">
-    <input type="hidden" name="end_date" id="end_date">
-    
-    <p>Выбранные даты: <span id="selected-dates"></span></p>
-    <p>Место получения: <input type="text" name="location" required></p>
-    <button type="submit">Забронировать</button>
-</form>
+    <div class="rental-form">
+        <h3 class="section-title">Аренда товара</h3>
+        <form method="POST" class="rent-form">
+            <div class="form-group">
+                <label for="start_date">Начало Арнеды</label>
+                <input type="date" id="start_date" name="start_date" required>
+            </div>
+            <div class="form-group">
+                <label for="end_date">Конец Аренды</label>
+                <input type="date" id="end_date" name="end_date" required>
+            </div>
+            <div class="form-group">
+                <label for="location">Локация</label>
+                <input type="text" id="location" name="location" required>
+            </div>
+            <button type="submit" class="submit-btn">Подтвердить</button>
+        </form>
+    </div>
+</div>
 
-<script>
-function isDateBooked(date) {
-    const dayElement = document.querySelector(`td[onclick*="${date}"]`);
-    return dayElement && dayElement.style.backgroundColor === 'rgb(204, 204, 204)';
-}
-
-let selectedDates = [];
-
-function handleDateClick(date) {
-    if (date === '0' || isDateBooked(date)) return; // То, что забронировано, не показывается 
-    if (date === '0') return; // Пустые ячейки
-    
-    // Проверяем, доступна ли дата
-    const dayElement = document.getElementById(`day-${date}`);
-    if (dayElement.style.backgroundColor === 'rgb(204, 204, 204)' || 
-        dayElement.style.backgroundColor === 'rgb(255, 221, 221)') {
-        return; // Нельзя выбрать прошедшие или занятые даты
+<style>
+    .product-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #333;
     }
 
-    // Логика выбора диапазона
-    if (selectedDates.length === 0) {
-        // Первая дата
-        selectedDates = [date];
-        dayElement.style.backgroundColor = '#aaffaa';
-    } else if (selectedDates.length === 1) {
-        // Вторая дата
-        selectedDates.push(date);
-        selectedDates.sort();
+    .product-header {
+        display: flex;
+        gap: 30px;
+        margin-bottom: 40px;
+        align-items: flex-start;
+    }
+
+    .product-image {
+        flex: 0 0 300px;
+    }
+
+    .product-img {
+        width: 100%;
+        max-height: 300px;
+        object-fit: cover;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .product-details {
+        flex: 1;
+    }
+
+    .product-title {
+        font-size: 2rem;
+        margin: 0 0 15px 0;
+        color: #2c3e50;
+    }
+
+    .product-meta {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .product-type, .product-status {
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    .product-type {
+        background-color: #e8f4fd;
+        color: #3498db;
+    }
+
+    .product-status {
+        background-color: #f0f0f0;
+    }
+
+    .product-status.active {
+        background-color: #e6f7ee;
+        color: #27ae60;
+    }
+
+    .product-status.booked, .product-status.reserved {
+        background-color: #fff8e6;
+        color: #f39c12;
+    }
+
+    .product-status.unavailable {
+        background-color: #fee;
+        color: #e74c3c;
+    }
+
+    .product-description {
+        line-height: 1.6;
+        color: #555;
+    }
+
+    .section-title {
+        font-size: 1.5rem;
+        color: #2c3e50;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .orders-table {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 30px;
+    }
+
+    th, td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+
+    th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+
+    tr.inactive td {
+        color: #95a5a6;
+    }
+
+    .rent-form {
+        background: #f8f9fa;
+        padding: 25px;
+        border-radius: 8px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+    }
+
+    input[type="date"],
+    input[type="text"] {
+        width: 100%;
+        padding: 10px 15px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+    }
+
+    .submit-btn {
+        background-color: #3498db;
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: 500;
+        transition: background-color 0.3s;
+    }
+
+    .submit-btn:hover {
+        background-color: #2980b9;
+    }
+
+    @media (max-width: 768px) {
+        .product-header {
+            flex-direction: column;
+        }
         
-        // Подсвечиваем весь диапазон
-        highlightDateRange(selectedDates[0], selectedDates[1]);
-    } else {
-        // Сброс выбора
-        resetSelection();
-        selectedDates = [date];
-        dayElement.style.backgroundColor = '#aaffaa';
-    }
-    
-    // Обновляем скрытые поля формы
-    document.getElementById('start_date').value = selectedDates[0];
-    document.getElementById('end_date').value = selectedDates[1] || selectedDates[0];
-    document.getElementById('selected-dates').textContent = selectedDates.join(' - ');
-}
-
-function highlightDateRange(start, end) {
-    resetSelection();
-    
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    const currentDate = new Date(startDate);
-    
-    while (currentDate <= endDate) {
-        const dateStr = currentDate.toISOString().split('T')[0];
-        const dayElement = document.getElementById(`day-${dateStr}`);
-        if (dayElement) {
-            dayElement.style.backgroundColor = '#aaffaa';
+        .product-image {
+            flex: 0 0 auto;
+            width: 100%;
         }
-        currentDate.setDate(currentDate.getDate() + 1);
     }
-
-    // Форматируем даты для формы (YYYY-MM-DD)
-    document.getElementById('start_date').value = selectedDates[0];
-    document.getElementById('end_date').value = selectedDates[1] || selectedDates[0];
-    
-    // Показываем даты пользователю в удобном формате
-    const displayFormat = selectedDates.map(d => {
-        const [y, m, day] = d.split('-');
-        return `${day}.${m}.${y}`;
-    }).join(' - ');
-    
-    document.getElementById('selected-dates').textContent = displayFormat;
-}
-
-function resetSelection() {
-    document.querySelectorAll('td').forEach(td => {
-        if (td.style.backgroundColor === 'rgb(170, 255, 170)') {
-            td.style.backgroundColor = '';
-        }
-    });
-}
-</script>
+</style>
 {% endblock %}

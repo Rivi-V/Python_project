@@ -1,7 +1,31 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1>An unexpected error has occurred</h1>
-    <p>The administrator has been notified. Sorry for the inconvenience!</p>
-    <p><a href="{{ url_for('index') }}">Back</a></p>
+<div class="error-container">
+    <div class="error-content">
+        <h1>500 — Ошибка сервера</h1>
+        <p>Произошла непредвиденная ошибка. Администратор уже уведомлен.</p>
+        <p>Приносим извинения за неудобства. Пожалуйста, попробуйте позже.</p>
+        <a href="{{ url_for('index') }}" class="btn btn-primary">На главную</a>
+    </div>
+</div>
+
+<style>
+    .error-container {
+        display: flex; /* элемент flex контейнер */
+        justify-content: center;  /* выравнивае по главной оси контейнера*/
+        align-items: center; /* выравнивание внутри контейнера */
+        min-height: 60vh; /* минимальная высота */
+        padding: 20px; /* оступы */
+    }
+    
+    .error-content {
+        max-width: 500px; /* минимальная ширина */
+        padding: 30px;
+        text-align: center; /* центрирует текст внутри контейнера */
+        background: white; 
+        border-radius: 8px; /* закруглённые углы у эелементов */
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1); /* тень */
+    }
+</style>
 {% endblock %}

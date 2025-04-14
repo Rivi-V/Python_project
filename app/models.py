@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone 
 from typing import Optional
 from app import db, login
 
@@ -16,8 +16,8 @@ Orders = sa.Table(
     db.metadata,
     sa.Column('user_id', sa.Integer, sa.ForeignKey('user.id'), primary_key=True),
     sa.Column('product_id', sa.Integer, sa.ForeignKey('product.id'), primary_key=True),
-    sa.Column('start_date', sa.Date, nullable=False),  # Используем Date вместо DateTime
-    sa.Column('end_date', sa.Date, nullable=False),    # Используем Date вместо DateTime
+    sa.Column('start_date', sa.Date, nullable=False), 
+    sa.Column('end_date', sa.Date, nullable=False),
     sa.Column('location', sa.String(200), nullable=False),
     sa.Column('status', sa.String(20), server_default='active')
 )
@@ -33,6 +33,7 @@ class User(UserMixin, db.Model):
     password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
     about_me: so.Mapped[Optional[str]] = so.mapped_column(sa.String(140))
     last_seen: so.Mapped[Optional[datetime]] = so.mapped_column(default=lambda: datetime.now(timezone.utc))
+    priority_level: so.Mapped[int] = so.mapped_column(default=0, server_default='0', nullable=False)
 
     products = so.relationship(
         'Product',
@@ -65,19 +66,3 @@ class Product(db.Model):
         back_populates='products',  # Связываем с полем `products` в модели User
         lazy='dynamic'  # Опция загрузки данных
     )
-
-
-# добавляем заказы явно, а не через отношения (users или products) -> ошибка
-# как надо например:
-
-# from datetime import datetime
-
-# order2 = Orders.insert().values(
-#     user_id=user1.id,
-#     product_id=product2.id,
-#     start_date=datetime.utcnow(),
-#     end_date=datetime.utcnow(),
-#     location="Warehouse B"
-# )
-# db.session.execute(order1)
-# db.session.commit()

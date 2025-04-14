@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="search-container">
+    <form method="POST" action="" class="search-form">
+        {{ form.hidden_tag() }}
+        <div class="search-input-group">
+            {{ form.query(class="search-input", placeholder="Введите название продукта...") }}
+            <button type="submit" class="search-button">
+                <!--иконка-->
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <span>Найти</span>
+            </button>
+        </div>
+    </form>
+</div>
+
+<div class="product-grid">
+    {% for product in products %}
+        {% include 'prod_plate.html' %}
+    {% else %}
+        <div class="no-results">
+            <p>Ничего не найдено. Попробуйте изменить параметры поиска.</p>
+        </div>
+    {% endfor %}
+</div>
+
+{% if prev_url or next_url %}
+<div class="pagination">
+    {% if prev_url %}
+        <a href="{{ prev_url }}" class="pagination-link">
+            <!--стрелочка-->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+            Новые товары
+        </a>
+    {% endif %}
+    
+    {% if next_url %}
+        <a href="{{ next_url }}" class="pagination-link">
+            Старые товары
+            <!--стрелочка-->
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+        </a>
+    {% endif %}
+</div>
+{% endif %}
+
+<style>
+    .search-container {
+        max-width: 800px;
+        margin: 0 auto 30px;
+        padding: 0 15px;
+    }
+    
+    .search-form {
+        width: 100%;
+    }
+    
+    .search-input-group {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .search-input {
+        flex: 1; /*заставляет гибкий эелемент заполнить всё доступное пространство*/
+        padding: 12px 15px;
+        border: 1px solid #ddd; /*устанавливает границу шириной 1 пиксель и цветом*/
+        border-radius: 6px;
+        font-size: 16px; /*задает размер шрифта в пикселях*/
+        transition: border-color 0.3s;
+    }
+    
+    .search-input:focus {
+        border-color: #3498db; /*цвет границ*/
+        outline: none; /* обводка не отображается*/
+    }
+    
+    .search-button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 20px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer; /*курсор на пальчик*/
+        transition: background-color 0.3s;
+    }
+    
+    .search-button:hover {
+        background-color: #2980b9;
+    }
+    
+    /* стили для списка продуктов */
+    .product-grid {
+        display: grid; /* двумерные списки */
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* задаёт количество и ширину столбцов для элемента в grid */
+        gap: 20px;
+        padding: 0 15px;
+        margin-bottom: 30px;
+    }
+    
+    .no-results {
+        grid-column: 1 / -1; /* размещает элемент от первой линии до последней */
+        text-align: center;
+        padding: 40px 0;
+        color: #7f8c8d;
+    }
+    
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-top: 30px;
+        padding: 0 15px;
+    }
+    
+    .pagination-link {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        color: #3498db;
+        text-decoration: none;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+    }
+    
+    .pagination-link:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .pagination-link svg { /* для тега svg (стрелочка) */
+        flex-shrink: 0; /* чтобы не сжималось */
+    }
+</style>
+{% endblock %}

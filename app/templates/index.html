@@ -1,5 +1,160 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>It's empty now.</h1>
+<section class="hero-section">
+    <div class="hero-content">
+        <h1>Добро пожаловать в наш сервис</h1>
+        <p class="hero-subtitle">Здесь вы найдете все необходимое оборудование для ваших задач</p>
+        <div class="hero-actions">
+            <a href="{{ url_for('explore') }}" class="btn btn-primary">Посмотреть каталог</a>
+        </div>
+    </div>
+    <div class="hero-image">
+        <img src="https://i.pinimg.com/736x/29/2c/ae/292cae9077fa4c9dc3653d0a6f0537c6.jpg" alt="Оборудование">
+    </div>
+</section>
+
+<section class="features-section">
+    <h2 class="section-title">Почему выбирают нас</h2>
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="feature-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3498db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 8v4l3 3"></path>
+                </svg>
+            </div>
+            <h3>Быстрое бронирование</h3>
+            <p>Простая система заказа оборудования в несколько кликов</p>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3498db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                </svg>
+            </div>
+            <h3>Широкий ассортимент</h3>
+            <p>Более 500 единиц оборудования различных категорий</p>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3498db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+            </div>
+            <h3>Поддержка 24/7</h3>
+            <p>Наша служба поддержки всегда готова помочь</p>
+        </div>
+    </div>
+</section>
+
+<style>
+    /* Главная секция */
+    .hero-section {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 60px 5%;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        border-radius: 12px;
+        margin-bottom: 60px;
+    }
+    
+    .hero-content {
+        max-width: 500px;
+    }
+    
+    .hero-section h1 {
+        font-size: 2.5rem; /*  размер шрифта, установленный с использованием единицы измерения rem */
+        color: #2c3e50;
+        margin-bottom: 20px;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.2rem;
+        color: #4a5568;
+        margin-bottom: 30px;
+        line-height: 1.6; /*расстояние между базовыми линиями соседних строк текста */
+    }
+    
+    .hero-actions {
+        display: flex;
+        gap: 15px;
+    }
+    
+    .hero-image img {
+        max-width: 450px;
+        border-radius: 8px;
+        box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+    }
+    
+    /* Карточки */
+    .features-section {
+        margin-bottom: 60px;
+    }
+    
+    .section-title {
+        text-align: center;
+        font-size: 2rem;
+        color: #2c3e50;
+        margin-bottom: 50px;
+    }
+    
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+    }
+    
+    .feature-card {
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        text-align: center;
+        transition: transform 0.3s ease;
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .feature-icon {
+        margin-bottom: 20px;
+    }
+    
+    .feature-card h3 {
+        font-size: 1.3rem;
+        color: #2c3e50;
+        margin-bottom: 15px;
+    }
+    
+    .feature-card p {
+        color: #718096;
+        line-height: 1.6;
+    }
+    
+    /* Адаптация макета */
+    @media (max-width: 768px) {
+        .hero-section { /* Вертикальная компоновка с выравниванием по центру и отступами */
+            flex-direction: column;
+            text-align: center;
+            padding: 40px 5%;
+        }
+        
+        .hero-actions { /* Вертикальная кнопки или ссылки по центру */
+            justify-content: center;
+        }
+        
+        .hero-image img { /* Добавляет отступ сверху и делает изображение адаптивным */
+            margin-top: 40px;
+            max-width: 100%;
+        }
+    }
+</style>
 {% endblock %}

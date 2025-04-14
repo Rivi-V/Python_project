@@ -1,6 +1,31 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1>File Not Found</h1>
-    <p><a href="{{ url_for('index') }}">Back</a></p>
+<div class="error-container">
+    <div class="error-content">
+        <h1>404 — Страница не найдена</h1> 
+        <p>Запрашиваемая страница не существует или была перемещена.</p>
+        <a href="{{ url_for('index') }}" class="btn btn-primary">На главную</a>
+        <a href="javascript:history.back()" class="btn btn-secondary">Назад</a>
+    </div>
+</div>
+
+<style>
+    .error-container {
+        display: flex; /* элемент flex контейнер */
+        justify-content: center;  /* выравнивае по главной оси контейнера*/
+        align-items: center; /* выравнивание внутри контейнера */
+        min-height: 60vh; /* минимальная высота */
+        padding: 20px; /* оступы */
+    }
+    
+    .error-content {
+        max-width: 500px; /* минимальная ширина */
+        padding: 30px;
+        text-align: center; /* центрирует текст внутри контейнера */
+        background: white; 
+        border-radius: 8px; /* закруглённые углы у эелементов */
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1); /* тень */
+    }
+</style>
 {% endblock %}
