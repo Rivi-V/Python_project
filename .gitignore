@@ -1,5 +1,10 @@
+# Игнорировать SQLite базы данных
+*.db
+*.sqlite
+*.sqlite3
+
+# Игнорировать папку .vs (Visual Studio)
 .vs/
 
+# Игнорировать кэш Python
 __pycache__/
-
-app.db
