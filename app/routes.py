@@ -172,8 +172,27 @@ def product(id):
         abort(404)
     
     # получаем все заказы для этого продукта
+    first_day_of_current_month = datetime.now().replace(day=1).date()
+
     orders = db.session.execute(
-        sa.select(Orders).where(Orders.c.product_id == id)
+        sa.select(Orders).where(
+            and_(
+                Orders.c.product_id == id,
+                or_(
+                    # Текущие заказы (которые активны и даты в пределах текущего времени)
+                    and_(
+                        Orders.c.start_date <= datetime.now().date(),
+                        Orders.c.end_date >= datetime.now().date(),
+                        Orders.c.status == 'active'
+                    ),
+                    # Прошедшие заказы, но созданные в текущем месяце
+                    and_(
+                        Orders.c.end_date < datetime.now().date(),
+                        Orders.c.start_date >= first_day_of_current_month
+                    )
+                )
+            )
+        )
         .order_by(Orders.c.start_date)
     ).all()
     
