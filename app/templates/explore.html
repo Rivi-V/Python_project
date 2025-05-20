@@ -1,23 +1,48 @@
 {% extends "base.html" %}
 
 {% block content %}
+
 <div class="search-container">
-    <form method="POST" action="" class="search-form">
-        {{ form.hidden_tag() }}
-        <div class="search-input-group">
-            {{ form.query(class="search-input", placeholder="Введите название продукта...") }}
+    <form method="GET" action="{{ url_for('explore') }}" class="search-form">
+        <div class="search-filters">
+            <!-- Поле поиска -->
+            <input type="text" 
+                   name="query" 
+                   class="search-input" 
+                   placeholder="Поиск по названию и описанию..."
+                   value="{{ search_term }}">
+            
+            <!-- Выпадающий список типов -->
+            <select name="type" class="filter-select">
+                <option value="all">Все категории</option>
+                {% for type in all_types %}
+                    <option value="{{ type }}" 
+                            {% if current_type == type %}selected{% endif %}>
+                        {{ type.capitalize() }}
+                    </option>
+                {% endfor %}
+            </select>
+            
+            <!-- Выпадающий список статусов -->
+            <select name="status" class="filter-select">
+                <option value="all">Все статусы</option>
+                <option value="Free" {% if current_status == 'Free' %}selected{% endif %}>Свободные</option>
+                <option value="Rented" {% if current_status == 'Rented' %}selected{% endif %}>Арендованные</option>
+            </select>
+            
+            <!-- Кнопка поиска -->
             <button type="submit" class="search-button">
-                <!--иконка-->
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
-                <span>Найти</span>
+                <span>Применить</span>
             </button>
         </div>
     </form>
 </div>
 
+<!-- Список товаров -->
 <div class="product-grid">
     {% for product in products %}
         {% include 'prod_plate.html' %}
@@ -28,22 +53,21 @@
     {% endfor %}
 </div>
 
+<!-- Пагинация с сохранением фильтров -->
 {% if prev_url or next_url %}
 <div class="pagination">
     {% if prev_url %}
         <a href="{{ prev_url }}" class="pagination-link">
-            <!--стрелочка-->
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="15 18 9 12 15 6"></polyline>
             </svg>
-            Новые товары
+            Назад
         </a>
     {% endif %}
     
     {% if next_url %}
         <a href="{{ next_url }}" class="pagination-link">
-            Старые товары
-            <!--стрелочка-->
+            Вперед
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="9 18 15 12 9 6"></polyline>
             </svg>
@@ -141,5 +165,22 @@
     .pagination-link svg { /* для тега svg (стрелочка) */
         flex-shrink: 0; /* чтобы не сжималось */
     }
+    .search-filters {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .filter-select {
+        padding: 10px 15px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background-color: white;
+        font-size: 16px;
+        min-width: 180px;
+        appearance: none;
+        background-position: right 10px center;
+        background-size: 16px;
+    }    
 </style>
 {% endblock %}

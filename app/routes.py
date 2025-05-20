@@ -4,6 +4,7 @@ from app.forms import LoginForm, RegistrationForm, EditProfileForm, SearchForm
 from flask_login import current_user, login_user, logout_user, login_required
 import sqlalchemy as sa
 from sqlalchemy import or_, and_
+from sqlalchemy.exc import IntegrityError
 from app.models import User, Product, Orders
 from datetime import datetime, timezone, date, timedelta 
 
@@ -12,6 +13,64 @@ from datetime import datetime, timezone, date, timedelta
 @login_required
 def index():
   return render_template("index.html", title='Home Page')
+
+@app.route('/product/<int:product_id>/delete_order/<start_date>', methods=['POST'])
+@login_required
+def delete_order(product_id, start_date):
+    try:
+        # Преобразуем строку даты обратно в datetime.date
+        start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+        
+        # Получаем заказ
+        if current_user.priority_level == 2:
+            order = db.session.execute(
+            sa.select(Orders)
+            .where(
+                Orders.c.product_id == product_id,
+                Orders.c.start_date == start_date_obj,
+            )
+            ).fetchone()
+        else:
+            order = db.session.execute(
+            sa.select(Orders)
+            .where(
+                Orders.c.product_id == product_id,
+                Orders.c.start_date == start_date_obj,
+                Orders.c.user_id == current_user.id  # Гарантируем, что пользователь удаляет только свои заказы
+            )
+            ).fetchone()
+
+        if not order:
+            flash('Заказ не найден или у вас нет прав на его удаление', 'danger')
+            return redirect(url_for('product', id=product_id))
+
+        # Удаляем заказ
+        if current_user.priority_level == 2:
+            db.session.execute(
+                sa.delete(Orders)
+                .where(
+                    Orders.c.product_id == product_id,
+                    Orders.c.start_date == start_date_obj,
+                )
+            )
+        else:
+                db.session.execute(
+                sa.delete(Orders)
+                .where(
+                    Orders.c.product_id == product_id,
+                    Orders.c.start_date == start_date_obj,
+                    Orders.c.user_id == current_user.id
+                )
+            )
+        db.session.commit()
+        flash('Заказ успешно удален', 'success')
+    except ValueError:
+        flash('Неверный формат даты', 'danger')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Ошибка при удалении заказа: {str(e)}', 'danger')
+    
+    return redirect(url_for('product', id=product_id))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -49,22 +108,39 @@ def register():
     return render_template('register.html', title='Register', form=form)
 
 
-@app.route('/explore', methods=['GET', 'POST'])
+@app.route('/explore')
 @login_required
 def explore():
-    form = SearchForm()
-    
+    type_filter = request.args.get('type', 'all')
+    status_filter = request.args.get('status', 'all')
+    search_term = request.args.get('query', '')
+    page = request.args.get('page', 1, type=int)
+
     query = sa.select(Product).order_by(Product.id.desc())
 
-    if form.validate_on_submit():
-        search_term = form.query.data.strip()  # удаляем пробелы
-        if search_term:
-            query = query.where(Product.name.ilike(f"%{search_term}%")) # товары, где название содержит слово
-            flash(f'Найдены товары по запросу "{search_term}"')
-        else:
-            flash('Введите поисковый запрос')
+    # Фильтр по типу
+    if type_filter != 'all':
+        query = query.where(Product.type == type_filter)
 
-    page = request.args.get('page', 1, type=int) # пагинация
+    # Фильтр по статусу
+    if status_filter != 'all':
+        query = query.where(Product.status == status_filter)
+
+    # Фильтр по поиску
+    if search_term:
+        search_term = search_term.strip()
+        query = query.where(
+            or_(
+                Product.name.ilike(f"%{search_term}%"),
+                Product.description.ilike(f"%{search_term}%")
+            )
+        )
+
+    all_types = db.session.execute(
+        sa.select(Product.type.distinct()).order_by(Product.type)
+    ).scalars().all()
+
+    # Пагинация
     products = db.paginate(
         query,
         page=page,
@@ -72,17 +148,24 @@ def explore():
         error_out=False
     )
 
-    next_url = url_for('explore', page=products.next_num) if products.has_next else None
-    prev_url = url_for('explore', page=products.prev_num) if products.has_prev else None
-
     return render_template(
         "explore.html",
         title='Поиск товаров',
         products=products.items,
-        next_url=next_url,
-        prev_url=prev_url,
-        form=form,
-        search_term=form.query.data if form.validate_on_submit() else None
+        all_types=all_types,
+        current_type=type_filter,
+        current_status=status_filter,
+        search_term=search_term,
+        next_url=url_for('explore', 
+                       page=products.next_num,
+                       type=type_filter,
+                       status=status_filter,
+                       query=search_term) if products.has_next else None,
+        prev_url=url_for('explore',
+                       page=products.prev_num,
+                       type=type_filter,
+                       status=status_filter,
+                       query=search_term) if products.has_prev else None
     )
 
 @app.route('/user/<username>')
@@ -125,6 +208,33 @@ def user(username):
 @app.route('/product/<int:id>', methods=['GET', 'POST'])
 @login_required
 def product(id):
+    # aвтоматическое обновление просроченных заказов
+    today = datetime.now().date()
+    expired_orders = db.session.execute(
+        sa.select(Orders)
+        .where(
+            Orders.c.status == 'active',
+            Orders.c.end_date < today
+        )
+    ).fetchall()
+
+    for order_row in expired_orders:
+        user_id = order_row.user_id
+        product_id = order_row.product_id
+        start_date = order_row.start_date
+        
+        db.session.execute(
+            sa.update(Orders)
+            .where(
+                Orders.c.user_id == user_id,
+                Orders.c.product_id == product_id,
+                Orders.c.start_date == start_date
+            )
+            .values(status='inactive')
+        )
+
+    if expired_orders:
+        db.session.commit()
     
     db.session.execute( # выполнение запросы
         sa.update(Product) # обновление бд
@@ -174,45 +284,38 @@ def product(id):
     # получаем все заказы для этого продукта
     first_day_of_current_month = datetime.now().replace(day=1).date()
 
+    # Вычисляем дату 2 месяца назад от текущей даты
+    two_months_ago = datetime.now().date() - timedelta(days=60)
+    
+    # Получаем все заказы для этого продукта за последние 2 месяца
     orders = db.session.execute(
-        sa.select(Orders).where(
+        sa.select(Orders)
+        .where(
             and_(
                 Orders.c.product_id == id,
-                or_(
-                    # Текущие заказы (которые активны и даты в пределах текущего времени)
-                    and_(
-                        Orders.c.start_date <= datetime.now().date(),
-                        Orders.c.end_date >= datetime.now().date(),
-                        Orders.c.status == 'active'
-                    ),
-                    # Прошедшие заказы, но созданные в текущем месяце
-                    and_(
-                        Orders.c.end_date < datetime.now().date(),
-                        Orders.c.start_date >= first_day_of_current_month
-                    )
-                )
+                Orders.c.start_date >= two_months_ago  # Заказы не старше 2 месяцев
             )
         )
-        .order_by(Orders.c.start_date)
-    ).all()
+        .order_by(Orders.c.start_date.desc())  # Сортировка от новых к старым
+    ).fetchall()
     
     if request.method == 'POST':
+        if current_user.priority_level == 0:
+            flash('У вас недостаточно прав для создания заказов', 'danger')
+            return redirect(url_for('product', id=id))
+
         start_date = datetime.strptime(request.form['start_date'], '%Y-%m-%d').date()
         end_date = datetime.strptime(request.form['end_date'], '%Y-%m-%d').date()
         location = request.form['location']
-        
-        # проверяем есть ли уже заказ этого пользователя на этот продукт
-        existing_order = db.session.execute(
-            sa.select(Orders)
-            .where(Orders.c.user_id == current_user.id)
-            .where(Orders.c.product_id == id)
-        ).first()
-        
-        if existing_order:
-            flash('Вы уже находитсь в очереди на аренду товара.', 'danger')
+
+        if start_date < datetime.now().date():
+            flash('Дата начала не может быть раньше текущей даты', 'error')
+            return redirect(url_for('product', id=id))  # или другой подходящий обработчик
+
+        if end_date < start_date:
+            flash('Дата окончания не может быть раньше даты начала', 'error')
             return redirect(url_for('product', id=id))
         
-        # проверяем пересечение дат с активными заказами
         conflicting_orders = db.session.execute(
             sa.select(Orders)
             .where(Orders.c.product_id == id)
@@ -222,27 +325,41 @@ def product(id):
                     and_(Orders.c.start_date <= end_date, Orders.c.end_date >= start_date),
                 )
             )
-        ).all()
-        
+        ).fetchall()
+
         # если есть конфликты, проверяем приоритеты
-        if conflicting_orders:
-            for order in conflicting_orders:
-                user = db.session.get(User, order.user_id)
-                if user.priority_level < current_user.priority_level:
-                    # деактивируем заказ с меньшим приоритетом
-                    db.session.execute(
-                        sa.update(Orders)
-                        .where(Orders.c.user_id == order.user_id)
-                        .where(Orders.c.product_id == id)
-                        .where(Orders.c.start_date == order.start_date)
-                        .values(status='inactive')
-                    )
-                else:
-                    flash('Выбранную дату уже выбрал пользвоатель с более высоким приоритетом.', 'danger')
-                    return redirect(url_for('product', id=id))
-        
-        # добавляем новый заказ (учитывая возможную ошибку с несколькими заказами)
+        has_higher_priority = False
+        orders_to_deactivate = []
+
+        for order in conflicting_orders:
+            user = db.session.get(User, order.user_id)
+            if user.priority_level < current_user.priority_level:
+                orders_to_deactivate.append(order)
+            else:
+                has_higher_priority = True
+
+        if has_higher_priority:
+            flash('Выбранные даты уже заняты пользователем с более высоким приоритетом.', 'danger')
+            return redirect(url_for('product', id=id))
+
+        # деактивируем заказы с меньшим приоритетом
+        for order in orders_to_deactivate:
+            db.session.execute(
+                sa.update(Orders)
+                .where(Orders.c.user_id == order.user_id)
+                .where(Orders.c.product_id == id)
+                .where(Orders.c.start_date == order.start_date)
+                .values(status='inactive')
+            )
+
+        # добавляем новый заказ
         try:
+            db.session.execute(
+                sa.delete(Orders)
+                .where(Orders.c.user_id == current_user.id)
+                .where(Orders.c.product_id == id)
+                .where(Orders.c.status == 'inactive')  # Удаляем только неактивные
+            ) 
             db.session.execute(
                 sa.insert(Orders).values(
                     user_id=current_user.id,
@@ -254,10 +371,10 @@ def product(id):
                 )
             )
             db.session.commit()
+            flash('Заказ успешно создан!', 'success')
         except IntegrityError:
             db.session.rollback()
-            flash('Вы уже находитсь в очереди на аренду товара.', 'danger')
-        
+            flash('Вы уже находитесь в очереди на аренду товара.', 'danger')
         return redirect(url_for('product', id=id))
     
     return render_template('product.html', product=product, orders=orders)
