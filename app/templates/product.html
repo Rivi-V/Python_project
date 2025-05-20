@@ -7,283 +7,168 @@
             <img src="{{ product.image_url or url_for('static', filename='default_product.jpg') }}" 
                  alt="{{ product.name }}" 
                  class="product-img">
-            <div class="product-badge {{ product.status|lower }}">{{ product.status }}</div>
         </div>
         <div class="product-details">
+            <h1 class="product-title">{{ product.name }}</h1>
             <div class="product-meta">
                 <span class="product-type">{{ product.type }}</span>
-                <span class="product-id">#{{ product.id }}</span>
+                <span class="product-status {{ product.status|lower }}">{{ product.status }}</span>
             </div>
-            <h1 class="product-title">{{ product.name }}</h1>
-            
             <div class="product-description">
-                <p>{{ product.description or "Описание отсутствует" }}</p>
+                <p>{{ product.description or "No description available" }}</p>
             </div>
         </div>
     </div>
 
-    <div class="product-sections">
-        <div class="rental-queue">
-            <h3 class="section-title">
-                <i class="fas fa-calendar-alt"></i> Очередь заказов
-                <span class="badge">{{ orders|length }}</span>
-            </h3>
-            <div class="orders-table">
-                {% if orders %}
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Период аренды</th>
-                            <th>Локация</th>
-                            <th>Статус</th>
-                            <th>Действия</th>
+    <div class="rental-queue">
+        <h3 class="section-title">Очередь заказов</h3>
+        <div class="orders-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Начало аренды</th>
+                        <th>Конец аренды</th>
+                        <th>Локация</th>
+                        <th>Статус</th>
+                        <th>Дейсвтие</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for order in orders %}
+                        <tr class="{% if order.status != 'active' %}inactive{% endif %}">
+                            <td>{{ order.start_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ order.end_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ order.location }}</td>
+                            <td>
+                                {% if order.status == 'active' %}
+                                    Активный
+                                {% else %}
+                                    Неактивный
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if current_user.priority_level >= 1 and 
+                                    (current_user.priority_level >= 2 or order.user_id == current_user.id) %}
+                                <form action="{{ url_for('delete_order', product_id=product.id, start_date=order.start_date.strftime('%Y-%m-%d')) }}" 
+                                    method="POST" 
+                                    style="display: inline;">
+                                    <button type="submit" class="btn-delete">Удалить</button>
+                                </form>
+                                {% endif %}
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                    {% for order in orders %}
-                            <tr class="{% if order.status != 'active' %}inactive{% endif %}">
-                                <td>
-                                    <div class="date-range">
-                                        <span class="date">{{ order.start_date.strftime('%d.%m.%Y') }}</span>
-                                        <span class="separator">—</span>
-                                        <span class="date">{{ order.end_date.strftime('%d.%m.%Y') }}</span>
-                                    </div>
-                                </td>
-                                <td>{{ order.location }}</td>
-                                <td>
-                                    <span class="status-badge {% if order.status == 'active' %}active{% else %}inactive{% endif %}">
-                                        {% if order.status == 'active' %}
-                                            Активен
-                                        {% else %}
-                                            Завершен
-                                        {% endif %}
-                                    </span>
-                                </td>
-                                <td>
-                                    {% if current_user.priority_level >= 1 and 
-                                        (current_user.priority_level >= 2 or order.user_id == current_user.id) %}
-                                    <form action="{{ url_for('delete_order', product_id=product.id, start_date=order.start_date.strftime('%Y-%m-%d')) }}" 
-                                        method="POST" 
-                                        style="display: inline;">
-                                        <button type="submit" class="btn-action btn-delete" title="Удалить">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </button>
-                                    </form>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                {% else %}
-                <div class="empty-state">
-                    <i class="fas fa-calendar-times"></i>
-                    <p>Нет активных заказов</p>
-                </div>
-                {% endif %}
-            </div>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
+    </div>
 
-        <div class="rental-form">
-            <h3 class="section-title">
-                <i class="fas fa-hand-holding"></i> Арендовать товар
-            </h3>
-            <form method="POST" class="rent-form">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="start_date">Начало аренды</label>
-                        <div class="input-with-icon">
-                            <i class="fas fa-calendar-day"></i>
-                            <input type="date" id="start_date" name="start_date" required>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="end_date">Конец аренды</label>
-                        <div class="input-with-icon">
-                            <i class="fas fa-calendar-day"></i>
-                            <input type="date" id="end_date" name="end_date" required>
-                        </div>
-                    </div>
-                    <div class="form-group full-width">
-                        <label for="location">Локация</label>
-                        <div class="input-with-icon">
-                            <i class="fas fa-map-marker-alt"></i>
-                            <input type="text" id="location" name="location" placeholder="Где будет использоваться товар?" required>
-                        </div>
-                    </div>
-                </div>
-                <button type="submit" class="submit-btn">
-                    <i class="fas fa-check"></i> Подтвердить аренду
-                </button>
-            </form>
-        </div>
+    <div class="rental-form">
+        <h3 class="section-title">Аренда товара</h3>
+        <form method="POST" class="rent-form">
+            <div class="form-group">
+                <label for="start_date">Начало Арнеды</label>
+                <input type="date" id="start_date" name="start_date" required>
+            </div>
+            <div class="form-group">
+                <label for="end_date">Конец Аренды</label>
+                <input type="date" id="end_date" name="end_date" required>
+            </div>
+            <div class="form-group">
+                <label for="location">Локация</label>
+                <input type="text" id="location" name="location" required>
+            </div>
+            <button type="submit" class="submit-btn">Подтвердить</button>
+        </form>
     </div>
 </div>
 
 <style>
-    :root {
-        --primary-color: #4361ee;
-        --primary-hover: #3a56d4;
-        --success-color: #4cc9f0;
-        --warning-color: #f8961e;
-        --danger-color: #f94144;
-        --text-color: #2b2d42;
-        --text-light: #8d99ae;
-        --bg-light: #f8f9fa;
-        --border-radius: 8px;
-        --box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        --transition: all 0.3s ease;
-    }
-
     .product-container {
         max-width: 1200px;
-        margin: 2rem auto;
-        padding: 0 20px;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        color: var(--text-color);
+        margin: 0 auto;
+        padding: 20px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #333;
     }
 
     .product-header {
         display: flex;
-        gap: 40px;
-        margin-bottom: 50px;
-        background: white;
-        padding: 30px;
-        border-radius: var(--border-radius);
-        box-shadow: var(--box-shadow);
-        position: relative;
+        gap: 30px;
+        margin-bottom: 40px;
+        align-items: flex-start;
     }
 
     .product-image {
-        flex: 0 0 350px;
-        position: relative;
-        border-radius: var(--border-radius);
-        overflow: hidden;
+        flex: 0 0 300px;
     }
 
     .product-img {
         width: 100%;
-        height: 350px;
+        max-height: 300px;
         object-fit: cover;
-        transition: var(--transition);
-    }
-
-    .product-badge {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: white;
-        text-transform: capitalize;
-    }
-
-    .product-badge.available {
-        background-color: var(--success-color);
-    }
-
-    .product-badge.booked, .product-badge.reserved {
-        background-color: var(--warning-color);
-    }
-
-    .product-badge.unavailable {
-        background-color: var(--danger-color);
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
 
     .product-details {
         flex: 1;
-        display: flex;
-        flex-direction: column;
+    }
+
+    .product-title {
+        font-size: 2rem;
+        margin: 0 0 15px 0;
+        color: #2c3e50;
     }
 
     .product-meta {
         display: flex;
         gap: 10px;
-        margin-bottom: 15px;
-        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .product-type, .product-status {
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        font-weight: 500;
     }
 
     .product-type {
         background-color: #e8f4fd;
-        color: var(--primary-color);
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.85rem;
-        font-weight: 500;
+        color: #3498db;
     }
 
-    .product-id {
-        color: var(--text-light);
-        font-size: 0.85rem;
+    .product-status {
+        background-color: #f0f0f0;
     }
 
-    .product-title {
-        font-size: 2.2rem;
-        margin: 0 0 20px 0;
-        font-weight: 700;
-        color: var(--text-color);
-        line-height: 1.2;
+    .product-status.active {
+        background-color: #e6f7ee;
+        color: #27ae60;
+    }
+
+    .product-status.booked, .product-status.reserved {
+        background-color: #fff8e6;
+        color: #f39c12;
+    }
+
+    .product-status.unavailable {
+        background-color: #fee;
+        color: #e74c3c;
     }
 
     .product-description {
-        line-height: 1.7;
-        color: var(--text-color);
-        margin-bottom: 25px;
-        flex-grow: 1;
-    }
-
-    .product-actions {
-        margin-top: auto;
-    }
-
-    .availability {
-        display: inline-flex;
-        align-items: center;
-        padding: 8px 16px;
-        border-radius: var(--border-radius);
-        font-weight: 500;
-    }
-
-    .availability.available {
-        background-color: rgba(76, 201, 240, 0.1);
-        color: var(--success-color);
-    }
-
-    .availability.unavailable {
-        background-color: rgba(249, 65, 68, 0.1);
-        color: var(--danger-color);
-    }
-
-    .product-sections {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 30px;
+        line-height: 1.6;
+        color: #555;
     }
 
     .section-title {
-        font-size: 1.3rem;
-        color: var(--text-color);
+        font-size: 1.5rem;
+        color: #2c3e50;
         margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .section-title .badge {
-        background-color: var(--primary-color);
-        color: white;
-        font-size: 0.8rem;
-        padding: 2px 8px;
-        border-radius: 10px;
-    }
-
-    .rental-queue, .rental-form {
-        background: white;
-        padding: 25px;
-        border-radius: var(--border-radius);
-        box-shadow: var(--box-shadow);
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
     }
 
     .orders-table {
@@ -293,165 +178,78 @@
     table {
         width: 100%;
         border-collapse: collapse;
-        margin-bottom: 10px;
+        margin-bottom: 30px;
     }
 
     th, td {
         padding: 12px 15px;
         text-align: left;
-        border-bottom: 1px solid #eee;
+        border-bottom: 1px solid #ddd;
     }
 
     th {
-        background-color: var(--bg-light);
+        background-color: #f8f9fa;
         font-weight: 600;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        color: var(--text-light);
     }
 
-    .date-range {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .date-range .separator {
-        color: var(--text-light);
-    }
-
-    .date {
-        font-weight: 500;
-    }
-
-    .status-badge {
-        display: inline-block;
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 0.8rem;
-        font-weight: 500;
-    }
-
-    .status-badge.active {
-        background-color: rgba(76, 201, 240, 0.1);
-        color: var(--success-color);
-    }
-
-    .status-badge.inactive {
-        background-color: rgba(141, 153, 174, 0.1);
-        color: var(--text-light);
-    }
-
-    .btn-action {
-        background: none;
-        border: none;
-        cursor: pointer;
-        color: var(--text-light);
-        transition: var(--transition);
-        padding: 5px;
-        border-radius: 4px;
-    }
-
-    .btn-action:hover {
-        color: var(--danger-color);
-        background-color: rgba(249, 65, 68, 0.1);
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 40px 20px;
-        color: var(--text-light);
-    }
-
-    .empty-state i {
-        font-size: 2rem;
-        margin-bottom: 15px;
-        color: #e9ecef;
-    }
-
-    .empty-state p {
-        margin: 0;
-        font-size: 0.95rem;
+    tr.inactive td {
+        color: #95a5a6;
     }
 
     .rent-form {
-        margin-top: 10px;
-    }
-
-    .form-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
+        background: #f8f9fa;
+        padding: 25px;
+        border-radius: 8px;
     }
 
     .form-group {
         margin-bottom: 20px;
     }
 
-    .form-group.full-width {
-        grid-column: span 2;
-    }
-
     label {
         display: block;
         margin-bottom: 8px;
         font-weight: 500;
-        font-size: 0.9rem;
-    }
-
-    .input-with-icon {
-        position: relative;
-    }
-
-    .input-with-icon i {
-        position: absolute;
-        left: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--text-light);
-        font-size: 0.9rem;
     }
 
     input[type="date"],
     input[type="text"] {
         width: 100%;
-        padding: 12px 15px 12px 38px;
-        border: 1px solid #e9ecef;
-        border-radius: var(--border-radius);
-        font-size: 0.95rem;
+        padding: 10px 15px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
         box-sizing: border-box;
-        transition: var(--transition);
-    }
-
-    input[type="date"]:focus,
-    input[type="text"]:focus {
-        outline: none;
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
     }
 
     .submit-btn {
-        background-color: var(--primary-color);
+        background-color: #3498db;
         color: white;
         border: none;
-        padding: 14px 20px;
-        border-radius: var(--border-radius);
+        padding: 12px 20px;
+        border-radius: 4px;
         cursor: pointer;
         font-size: 1rem;
         font-weight: 500;
-        transition: var(--transition);
-        width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        margin-top: 10px;
+        transition: background-color 0.3s;
+        box-sizing: border-box;
     }
 
     .submit-btn:hover {
-        background-color: var(--primary-hover);
-        transform: translateY(-2px);
+        background-color: #2980b9;
     }
 
+    @media (max-width: 768px) {
+        .product-header {
+            flex-direction: column;
+        }
+        
+        .product-image {
+            flex: 0 0 auto;
+            width: 100%;
+        }
+    }
 </style>
 {% endblock %}
+
+сделай красиво
