@@ -1,4 +1,3 @@
-"# Python_project" 
 # Equipment Booking & Inventory Management System
 > Масштабируемый веб-сервис для бронирования оборудования с ролевой моделью доступа и интеграцией поисковых движков.
 
